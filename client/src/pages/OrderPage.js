@@ -60,6 +60,23 @@ const OrderPage = () => {
     { field: 'title', headerName: '발주명', flex: 1 },
     { field: 'writer', headerName: '발주자', flex: 1 },
     {
+      field: 'createdAt',
+      headerName: '생성일',
+      flex: 1,
+      renderCell: (params) => {
+        const raw = params.row?.createdAt;
+        if (!raw) return '-';
+        const date = new Date(raw);
+        const yyyy = date.getFullYear();
+        const mm = String(date.getMonth() + 1).padStart(2, '0');
+        const dd = String(date.getDate()).padStart(2, '0');
+        const hh = String(date.getHours()).padStart(2, '0');
+        const mi = String(date.getMinutes()).padStart(2, '0');
+        return `${yyyy}-${mm}-${dd} ${hh}:${mi}`;
+      }
+    }
+    ,
+    {
       field: 'actions',
       headerName: '관리',
       width: 120,

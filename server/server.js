@@ -15,6 +15,7 @@ app.use(express.json());
 const ingredientRoutes = require('./routes/ingredientRoutes');
 const productRoutes = require('./routes/productRoutes');
 const orderRoutes = require('./routes/orderRoutes');
+const warehouseRoutes = require('./routes/warehouseRoutes');
 
 // DB 연결
 sequelize.sync({ alter: true }).then(() => {
@@ -27,6 +28,7 @@ app.use('/api/ingredients', ingredientRoutes);
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/products', productRoutes);
 app.use('/api/orders', orderRoutes);
+app.use('/api/warehouses', warehouseRoutes);
 
 app.listen(PORT, () => {
   console.log(`🚀 서버 실행 중: http://localhost:${PORT}`);

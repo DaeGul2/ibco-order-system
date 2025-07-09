@@ -10,6 +10,9 @@ router.get('/:id', warehouseController.getWarehouseById);
 router.put('/:id', warehouseController.updateWarehouse);
 router.delete('/:id', warehouseController.deleteWarehouse);
 
+// 창고 우선순위 일괄 저장
+router.patch('/priority', warehouseController.updateWarehousePriority);
+
 // 창고별 원료 보유 CRUD
 router.get('/:warehouseId/ingredients', warehouseIngredientController.getIngredientsByWarehouse);
 router.get('/:warehouseId/ingredients/:ingredientId', warehouseIngredientController.getOne);

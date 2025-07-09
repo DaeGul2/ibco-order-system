@@ -17,6 +17,7 @@ const SidebarLayout = () => {
   const [openIngredient, setOpenIngredient] = useState(false);
   const [openProduct, setOpenProduct] = useState(false);
   const [openOrder, setOpenOrder] = useState(false);
+  const [openWarehouse, setOpenWarehouse] = useState(false);
 
   const handleToggle = (setOpen) => setOpen(prev => !prev);
 
@@ -30,8 +31,10 @@ const SidebarLayout = () => {
   return (
     <Box sx={{ display: 'flex' }}>
       {/* 사이드 Drawer */}
-      <Drawer variant="permanent" sx={{ width: 240, flexShrink: 0,
-        [`& .MuiDrawer-paper`]: { width: 240, boxSizing: 'border-box' } }}>
+      <Drawer variant="permanent" sx={{
+        width: 240, flexShrink: 0,
+        [`& .MuiDrawer-paper`]: { width: 240, boxSizing: 'border-box' }
+      }}>
         <Toolbar />
         <List>
           {/* 원료 */}
@@ -69,6 +72,18 @@ const SidebarLayout = () => {
             <List component="div" disablePadding>
               <ListItem button sx={{ pl: 4 }} onClick={() => handleNav('/orders/list')}>
                 <ListItemText primary="발주관리" />
+              </ListItem>
+            </List>
+          </Collapse>
+
+          <ListItem button onClick={() => handleToggle(setOpenWarehouse)}>
+            <ListItemText primary="창고" />
+            {openWarehouse ? <ExpandLess /> : <ExpandMore />}
+          </ListItem>
+          <Collapse in={openWarehouse} timeout="auto" unmountOnExit>
+            <List component="div" disablePadding>
+              <ListItem button sx={{ pl: 4 }} onClick={() => handleNav('/warehouses/manage')}>
+                <ListItemText primary="창고관리" />
               </ListItem>
             </List>
           </Collapse>

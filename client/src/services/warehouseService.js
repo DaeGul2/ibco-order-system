@@ -58,3 +58,8 @@ export const addOrUpdateWarehouseIngredient = async (data, token) => {
 export const deleteWarehouseIngredient = async (warehouseId, ingredientId, token) => {
   await axios.delete(`${API}/${warehouseId}/ingredients/${ingredientId}`, authHeader(token));
 };
+
+export const updateWarehousePriorities = async (orderedPriorityIds, token) => {
+  const res = await axios.patch(`${API}/priority`, { orderedPriorityIds }, authHeader(token));
+  return res.data;
+};

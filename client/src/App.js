@@ -8,7 +8,7 @@ import MainPage from './pages/MainPage';
 import IngredientPage from './pages/IngredientPage';
 import ProductPage from './pages/ProductPage';
 import OrderPage from './pages/OrderPage';
-
+import WarehousePage from './pages/WarehousePage';
 
 
 // 샘플용
@@ -30,10 +30,11 @@ function App() {
             }
           >
             <Route index element={<MainPage />} />
-            
+
             <Route path="ingredients/list" element={<IngredientPage />} />
-            <Route path="orders/list" element={<OrderPage/>} />
+            <Route path="orders/list" element={<OrderPage />} />
             <Route path="products/list" element={<ProductPage />} />
+            <Route path="warehouses/manage" element={<WarehousePage />} />
           </Route>
         </Routes>
       </Router>

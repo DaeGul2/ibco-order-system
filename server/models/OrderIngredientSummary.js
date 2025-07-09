@@ -18,6 +18,14 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.DECIMAL(10, 4),
       allowNull: false,
     },
+    unitCost: {
+      type: DataTypes.INTEGER, // 1kg당 가격 (스냅샷용)
+      allowNull: false,
+    },
+    totalCost: {
+      type: DataTypes.INTEGER, // totalAmountKg × unitCost
+      allowNull: false,
+    },
   }, {
     tableName: 'order_ingredient_summaries',
     timestamps: true,

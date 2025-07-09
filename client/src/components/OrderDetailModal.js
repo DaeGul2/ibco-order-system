@@ -1,3 +1,4 @@
+// 리팩토링된 OrderDetailModal.js
 import {
     Dialog, DialogTitle, DialogContent, DialogActions,
     Button, Typography, Table, TableHead, TableRow, TableCell, TableBody, Box,
@@ -44,7 +45,7 @@ const OrderDetailModal = ({ open, onClose, data }) => {
     if (!data) return null;
     const { order, items, ingredientSummary } = data;
 
-    let totalOrderCost = 0; // 발주 전체 비용 누적
+    let totalOrderCost = 0;
 
     return (
         <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
@@ -88,7 +89,7 @@ const OrderDetailModal = ({ open, onClose, data }) => {
                                         </TableCell>
                                         <TableCell>{item.Product?.name || `ID ${item.productId}`}</TableCell>
                                         <TableCell align="right">{item.quantityKg}</TableCell>
-                                        <TableCell align="right">{Math.round(productTotalCost)}</TableCell>
+                                        <TableCell align="right">{Math.round(productTotalCost).toLocaleString()}</TableCell>
                                     </TableRow>
 
                                     <TableRow>
@@ -117,8 +118,8 @@ const OrderDetailModal = ({ open, onClose, data }) => {
                                                                         <TableCell>{ingredient?.name || `ID ${pi.ingredientId}`}</TableCell>
                                                                         <TableCell align="right">{pi.amount}</TableCell>
                                                                         <TableCell align="right">{amount.toFixed(4)}</TableCell>
-                                                                        <TableCell align="right">{cost}</TableCell>
-                                                                        <TableCell align="right">{Math.round(totalCost)}</TableCell>
+                                                                        <TableCell align="right">{cost.toLocaleString()}</TableCell>
+                                                                        <TableCell align="right">{Math.round(totalCost).toLocaleString()}</TableCell>
                                                                     </TableRow>
                                                                 );
                                                             })}
@@ -133,12 +134,12 @@ const OrderDetailModal = ({ open, onClose, data }) => {
                         })}
                         <TableRow>
                             <TableCell colSpan={3}><strong>💰 발주 전체 총 비용</strong></TableCell>
-                            <TableCell align="right"><strong>{Math.round(totalOrderCost)}</strong></TableCell>
+                            <TableCell align="right"><strong>{Math.round(totalOrderCost).toLocaleString()}</strong></TableCell>
                         </TableRow>
                     </TableBody>
                 </Table>
 
-                <Typography variant="h6" gutterBottom>🧪 원료 정량 지시 (전체 발주 건에 대한 각 원료 총합)</Typography>
+                <Typography variant="h6" gutterBottom>🧪 전체 발주 원료 총합</Typography>
                 <Table size="small">
                     <TableHead>
                         <TableRow>
@@ -149,19 +150,22 @@ const OrderDetailModal = ({ open, onClose, data }) => {
                         </TableRow>
                     </TableHead>
                     <TableBody>
-                        {ingredientSummary.map((sum, idx) => {
-                            const ingredient = sum.Ingredient;
-                            const cost = ingredient?.cost ?? 0;
-                            const totalCost = sum.totalAmountKg * cost;
-                            return (
-                                <TableRow key={idx}>
-                                    <TableCell>{ingredient?.name || `ID ${sum.ingredientId}`}</TableCell>
-                                    <TableCell align="right">{sum.totalAmountKg}</TableCell>
-                                    <TableCell align="right">{cost}</TableCell>
-                                    <TableCell align="right">{Math.round(totalCost)}</TableCell>
-                                </TableRow>
-                            );
-                        })}
+                        {ingredientSummary.map((sum, idx) => (
+                            <TableRow key={idx}>
+                                <TableCell>{sum.Ingredient?.name || `ID ${sum.ingredientId}`}</TableCell>
+                                <TableCell align="right">{parseFloat(sum.totalAmountKg).toFixed(4)}</TableCell>
+                                <TableCell align="right">{sum.unitCost?.toLocaleString() || 0}</TableCell>
+                                <TableCell align="right">{Math.round(sum.totalCost || 0).toLocaleString()}</TableCell>
+                            </TableRow>
+                        ))}
+                        <TableRow>
+                            <TableCell colSpan={3}><strong>💰 전체 발주 원료 총 비용</strong></TableCell>
+                            <TableCell align="right">
+                                <strong>
+                                    {ingredientSummary.reduce((acc, sum) => acc + (sum.totalCost || 0), 0).toLocaleString()}
+                                </strong>
+                            </TableCell>
+                        </TableRow>
                     </TableBody>
                 </Table>
             </DialogContent>

@@ -41,11 +41,21 @@ exports.createOrder = async (req, res) => {
     }
 
     // 4. OrderIngredientSummary 생성
-    const summaryEntries = Object.entries(ingredientTotals).map(([ingredientId, totalAmountKg]) => ({
-      orderId: order.id,
-      ingredientId: parseInt(ingredientId),
-      totalAmountKg,
-    }));
+    const summaryEntries = await Promise.all(
+      Object.entries(ingredientTotals).map(async ([ingredientId, totalAmountKg]) => {
+        const ingredient = await Ingredient.findByPk(ingredientId);
+        const unitCost = ingredient.cost || 0;
+        const totalCost = Math.round(totalAmountKg * unitCost);
+
+        return {
+          orderId: order.id,
+          ingredientId: parseInt(ingredientId),
+          totalAmountKg,
+          unitCost,
+          totalCost,
+        };
+      })
+    );
 
     await OrderIngredientSummary.bulkCreate(summaryEntries);
 

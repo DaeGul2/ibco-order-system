@@ -1,4 +1,4 @@
-const { Order, OrderItem, OrderIngredientSummary, ProductIngredient, Ingredient, Product } = require('../models');
+const { Order, OrderItem, OrderIngredientSummary, ProductIngredient, Ingredient, Product, OrderProductIngredient } = require('../models');
 
 // [1] 발주 생성
 exports.createOrder = async (req, res) => {
@@ -19,7 +19,31 @@ exports.createOrder = async (req, res) => {
         });
       })
     );
+    for (const item of items) {
+      const productIngredients = await ProductIngredient.findAll({
+        where: { productId: item.productId },
+        include: [{ model: Ingredient }],
+      });
 
+      const snapshotRows = productIngredients.map((pi) => {
+        const amountPerKg = parseFloat(pi.amount);
+        const unitCost = pi.Ingredient?.cost || 0;
+        const totalAmountKg = (amountPerKg / 100) * item.quantityKg;
+        const totalCost = Math.round(totalAmountKg * unitCost);
+
+        return {
+          orderId: order.id,
+          productId: item.productId,
+          ingredientId: pi.ingredientId,
+          amountPerKg,
+          unitCost,
+          totalAmountKg,
+          totalCost,
+        };
+      });
+
+      await OrderProductIngredient.bulkCreate(snapshotRows);
+    }
     // 3. 원료 총합 계산
     const ingredientTotals = {}; // ingredientId: totalKg
 
@@ -91,10 +115,16 @@ exports.getOrderById = async (req, res) => {
       include: [{ model: Ingredient, attributes: ['name'] }]
     });
 
+    const orderProductIngredients = await OrderProductIngredient.findAll({
+      where: { orderId: order.id },
+      include: [{ model: Ingredient, attributes: ['name'] }]
+    });
+
     res.status(200).json({
       order,
       items,
       ingredientSummary: summary,
+      orderProductIngredients, // ✅ 추가됨
     });
   } catch (err) {
     res.status(500).json({ message: '발주 상세 조회 실패', error: err.message });

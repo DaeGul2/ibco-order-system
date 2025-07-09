@@ -23,6 +23,7 @@ const OrderIngredientSummary = require('./OrderIngredientSummary')(sequelize, Da
 const User = require('./User')(sequelize, DataTypes);
 const IngredientInciKor = require('./IngredientInciKor')(sequelize, DataTypes);
 const IngredientInciEng = require('./IngredientInciEng')(sequelize, DataTypes);
+const OrderProductIngredient = require('./OrderProductIngredient')(sequelize, DataTypes);
 
 // 관계 설정
 ProductIngredient.belongsTo(Product, { foreignKey: 'productId' });
@@ -47,6 +48,16 @@ IngredientInciKor.belongsTo(Ingredient, { foreignKey: 'ingredientId' });
 Ingredient.hasMany(IngredientInciEng, { foreignKey: 'ingredientId' });
 IngredientInciEng.belongsTo(Ingredient, { foreignKey: 'ingredientId' });
 
+
+OrderProductIngredient.belongsTo(Order, { foreignKey: 'orderId' });
+OrderProductIngredient.belongsTo(Product, { foreignKey: 'productId' });
+OrderProductIngredient.belongsTo(Ingredient, { foreignKey: 'ingredientId' });
+
+Order.hasMany(OrderProductIngredient, { foreignKey: 'orderId' });
+Product.hasMany(OrderProductIngredient, { foreignKey: 'productId' });
+Ingredient.hasMany(OrderProductIngredient, { foreignKey: 'ingredientId' });
+
+
 module.exports = {
   sequelize,
   Sequelize,
@@ -58,5 +69,6 @@ module.exports = {
   OrderIngredientSummary,
   User,
   IngredientInciKor,
-  IngredientInciEng
+  IngredientInciEng,
+  OrderProductIngredient,
 };

@@ -74,7 +74,40 @@ const OrderPage = () => {
         const mi = String(date.getMinutes()).padStart(2, '0');
         return `${yyyy}-${mm}-${dd} ${hh}:${mi}`;
       }
-    }
+    },
+    {
+      field: 'isApplied',
+      headerName: '창고 적용여부',
+      width: 140,
+      renderCell: (params) => {
+        const applied = params.value;
+        return (
+          <Box
+            sx={{
+              width: '70%',
+              height: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Box
+              sx={{
+                px: 1,
+                py: 0.01,
+                borderRadius: '30px',
+                backgroundColor: applied ? 'success.main' : 'error.main',
+                color: '#fff',
+                fontSize: '0.8rem',
+                fontWeight: 500,
+              }}
+            >
+              {applied ? '적용됨' : '미적용'}
+            </Box>
+          </Box>
+        );
+      }
+    },
     ,
     {
       field: 'actions',

@@ -14,6 +14,11 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.STRING,
       allowNull: false,
     },
+    isApplied: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false, // ✅ 기본값 false
+    },
   }, {
     tableName: 'orders',
     timestamps: true,

@@ -137,12 +137,17 @@ exports.deleteOrder = async (req, res) => {
     const order = await Order.findByPk(req.params.id);
     if (!order) return res.status(404).json({ message: '해당 발주를 찾을 수 없습니다.' });
 
+    // 🔥 자식 테이블 삭제 순서 중요!
+    await OrderProductIngredient.destroy({ where: { orderId: order.id } }); // ✅ 누락된 부분
     await OrderItem.destroy({ where: { orderId: order.id } });
     await OrderIngredientSummary.destroy({ where: { orderId: order.id } });
+
     await order.destroy();
 
     res.status(204).send();
   } catch (err) {
+    console.log(err);
     res.status(500).json({ message: '발주 삭제 실패', error: err.message });
   }
 };
+

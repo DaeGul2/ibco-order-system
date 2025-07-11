@@ -33,7 +33,7 @@ function App() {
             <Route index element={<MainPage />} />
 
             <Route path="ingredients/list" element={<IngredientPage />} />
-            <Route path="orders/list" element={<OrderPage />} />
+            <Route path="orders/productlist" element={<OrderPage />} />
             <Route path="products/list" element={<ProductPage />} />
             <Route path="warehouses/manage" element={<WarehousePage />} />
             <Route path="warehouses/ingredients" element={<WarehouseIngredientPage />} /> {/* ✅ 추가 */}

@@ -70,8 +70,11 @@ const SidebarLayout = () => {
           </ListItem>
           <Collapse in={openOrder} timeout="auto" unmountOnExit>
             <List component="div" disablePadding>
-              <ListItem button sx={{ pl: 4 }} onClick={() => handleNav('/orders/list')}>
-                <ListItemText primary="발주관리" />
+              <ListItem button sx={{ pl: 4 }} onClick={() => handleNav('/orders/productlist')}>
+                <ListItemText primary="발주관리_제품" />
+              </ListItem>
+              <ListItem button sx={{ pl: 4 }} onClick={() => handleNav('/orders/ingredientlist')}>
+                <ListItemText primary="발주관리_원료" />
               </ListItem>
             </List>
           </Collapse>

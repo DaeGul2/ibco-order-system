@@ -85,6 +85,9 @@ const SidebarLayout = () => {
               <ListItem button sx={{ pl: 4 }} onClick={() => handleNav('/warehouses/manage')}>
                 <ListItemText primary="창고관리" />
               </ListItem>
+              <ListItem button sx={{ pl: 4 }} onClick={() => handleNav('/warehouses/ingredients')}> {/* ✅ 추가 */}
+                <ListItemText primary="창고 원료 관리" />
+              </ListItem>
             </List>
           </Collapse>
         </List>

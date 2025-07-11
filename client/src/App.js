@@ -9,6 +9,7 @@ import IngredientPage from './pages/IngredientPage';
 import ProductPage from './pages/ProductPage';
 import OrderPage from './pages/OrderPage';
 import WarehousePage from './pages/WarehousePage';
+import WarehouseIngredientPage from './pages/WarehouseIngredientPage'; // ✅ 추가
 
 
 // 샘플용
@@ -35,6 +36,7 @@ function App() {
             <Route path="orders/list" element={<OrderPage />} />
             <Route path="products/list" element={<ProductPage />} />
             <Route path="warehouses/manage" element={<WarehousePage />} />
+            <Route path="warehouses/ingredients" element={<WarehouseIngredientPage />} /> {/* ✅ 추가 */}
           </Route>
         </Routes>
       </Router>

@@ -61,3 +61,32 @@ exports.deleteWarehouseIngredient = async (req, res) => {
     res.status(500).json({ message: '삭제 실패', error: err.message });
   }
 };
+
+exports.bulkSetIngredients = async (req, res) => {
+  try {
+    const list = req.body; // [{ warehouseId, ingredientId, stockKg }]
+
+    for (const item of list) {
+      const { warehouseId, ingredientId, stockKg } = item;
+      if (!warehouseId || !ingredientId || isNaN(stockKg)) continue;
+
+      const existing = await WarehouseIngredient.findOne({
+        where: { warehouseId, ingredientId }
+      });
+
+      if (existing) {
+        await existing.update({ stockKg: parseFloat(stockKg) });
+      } else {
+        await WarehouseIngredient.create({
+          warehouseId,
+          ingredientId,
+          stockKg: parseFloat(stockKg)
+        });
+      }
+    }
+
+    res.status(200).json({ message: '일괄 저장 완료' });
+  } catch (err) {
+    res.status(500).json({ message: '일괄 저장 실패', error: err.message });
+  }
+};

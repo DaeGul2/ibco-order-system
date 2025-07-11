@@ -59,6 +59,12 @@ export const deleteWarehouseIngredient = async (warehouseId, ingredientId, token
   await axios.delete(`${API}/${warehouseId}/ingredients/${ingredientId}`, authHeader(token));
 };
 
+export const bulkSetWarehouseIngredients = async (bulkData, token) => {
+  const res = await axios.post(`${API}/ingredients/bulk-set`, bulkData, authHeader(token));
+  return res.data;
+};
+
+
 export const updateWarehousePriorities = async (orderedPriorityIds, token) => {
   const res = await axios.patch(`${API}/priority`, { orderedPriorityIds }, authHeader(token));
   return res.data;

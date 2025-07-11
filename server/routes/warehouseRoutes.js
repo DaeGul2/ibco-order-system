@@ -18,5 +18,6 @@ router.get('/:warehouseId/ingredients', warehouseIngredientController.getIngredi
 router.get('/:warehouseId/ingredients/:ingredientId', warehouseIngredientController.getOne);
 router.post('/ingredients', warehouseIngredientController.addOrUpdateIngredient);
 router.delete('/:warehouseId/ingredients/:ingredientId', warehouseIngredientController.deleteWarehouseIngredient);
+router.post('/ingredients/bulk-set', warehouseIngredientController.bulkSetIngredients);
 
 module.exports = router;

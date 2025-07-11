@@ -14,7 +14,7 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.TEXT,
     },
     ewg: {
-      type: DataTypes.INTEGER, // 등급 1~10
+      type: DataTypes.STRING, // 등급 1~10
       allowNull: true,
     },
     code: {

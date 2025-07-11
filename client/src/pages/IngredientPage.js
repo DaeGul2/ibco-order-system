@@ -8,6 +8,8 @@ import { DataGrid } from '@mui/x-data-grid';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
+import UploadFileIcon from '@mui/icons-material/UploadFile'; // 🔵 추가
+import * as XLSX from 'xlsx'; // 🔵 추가
 import {
   getAllIngredients, createIngredient, deleteIngredient, updateIngredient
 } from '../services/ingredientService';
@@ -33,10 +35,7 @@ const IngredientPage = () => {
 
   const fetchData = () => {
     getAllIngredients(token)
-      .then((data) => {
-        console.log('✅ 받은 데이터:', data); // <- 여기서 실제 서버 응답 찍힘
-        setIngredients(data);
-      })
+      .then(setIngredients)
       .catch(() => showSnackbar('원료 조회 실패', 'error'));
   };
 
@@ -77,7 +76,6 @@ const IngredientPage = () => {
     setModalOpen(true);
   };
 
-
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
@@ -104,7 +102,7 @@ const IngredientPage = () => {
       const data = {
         name: form.name,
         description: form.description,
-        ewg: parseInt(form.ewg),
+        ewg: form.ewg, // 🔵 string 그대로 저장
         code: form.code,
         usage: form.usage,
         cost: parseInt(form.cost),
@@ -133,6 +131,44 @@ const IngredientPage = () => {
     } catch {
       showSnackbar('삭제 실패', 'error');
     }
+  };
+
+  // 🔵 엑셀 import 기능
+  const handleExcelImport = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (evt) => {
+      const data = new Uint8Array(evt.target.result);
+      const workbook = XLSX.read(data, { type: 'array' });
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      const json = XLSX.utils.sheet_to_json(sheet);
+
+      for (const row of json) {
+        const ingredient = {
+          name: row['원료명'] || '',
+          description: '',
+          ewg: String(row['EWG'] || ''),
+          code: row['코드'] || '',
+          usage: row['용도'] || '',
+          cost: parseInt(row['단가']) || 0,
+          inciKorNames: (row['INCI'] || '').split('$').map(v => v.trim()).filter(Boolean),
+          inciEngNames: (row['INCI ENG'] || '').split('$').map(v => v.trim()).filter(Boolean),
+        };
+
+        try {
+          await createIngredient(ingredient, token);
+        } catch (err) {
+          console.error('등록 실패:', ingredient.name, err);
+          showSnackbar(`"${ingredient.name}" 등록 실패`, 'error');
+        }
+      }
+
+      fetchData();
+      showSnackbar('엑셀 import 완료!');
+    };
+    reader.readAsArrayBuffer(file);
   };
 
   const columns = [
@@ -186,18 +222,33 @@ const IngredientPage = () => {
     <Container maxWidth={false} disableGutters>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 4, mb: 2, maxWidth: '1600px', mx: 'auto' }}>
         <Typography variant="h6">원료 목록</Typography>
-        <Button variant="contained" startIcon={<AddIcon />} onClick={openCreateModal}>
-          원료 추가
-        </Button>
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          <Button variant="contained" startIcon={<AddIcon />} onClick={openCreateModal}>
+            원료 추가
+          </Button>
+          <Button
+            variant="outlined"
+            component="label"
+            startIcon={<UploadFileIcon />}
+          >
+            엑셀로 Import
+            <input
+              type="file"
+              accept=".xlsx, .xls"
+              hidden
+              onChange={handleExcelImport}
+            />
+          </Button>
+        </Box>
       </Box>
 
       <Box
         sx={{
           height: 600,
-          maxWidth: '3000px',   // 폭 2배 확장
-          mx: 'auto',            // 가운데 정렬
+          maxWidth: '3000px',
+          mx: 'auto',
           overflowX: 'auto',
-          backgroundColor: '#fff', // 보기 좋게
+          backgroundColor: '#fff',
           borderRadius: 2,
           boxShadow: 1,
         }}
@@ -211,33 +262,22 @@ const IngredientPage = () => {
         />
       </Box>
 
+      {/* 등록/수정 모달 */}
       <Dialog open={modalOpen} onClose={() => setModalOpen(false)} maxWidth="md" fullWidth>
         <DialogTitle>{editMode ? '원료 수정' : '원료 추가'}</DialogTitle>
         <DialogContent sx={{ pt: 2 }}>
-          {/* 기본 정보 Layer */}
+          {/* 기본 정보 */}
           <Typography variant="h6" gutterBottom>기본 정보</Typography>
           <Grid container spacing={2}>
-            <Grid item xs={6}>
-              <TextField label="원료명" name="name" value={form.name} onChange={handleChange} fullWidth required />
-            </Grid>
-            <Grid item xs={6}>
-              <TextField label="설명" name="description" value={form.description} onChange={handleChange} fullWidth />
-            </Grid>
-            <Grid item xs={4}>
-              <TextField label="EWG 등급" name="ewg" type="number" value={form.ewg} onChange={handleChange} fullWidth />
-            </Grid>
-            <Grid item xs={4}>
-              <TextField label="코드" name="code" value={form.code} onChange={handleChange} fullWidth />
-            </Grid>
-            <Grid item xs={4}>
-              <TextField label="사용처" name="usage" value={form.usage} onChange={handleChange} fullWidth />
-            </Grid>
-            <Grid item xs={4}>
-              <TextField label="1kg 단가" name="cost" type="number" value={form.cost} onChange={handleChange} fullWidth />
-            </Grid>
+            <Grid item xs={6}><TextField label="원료명" name="name" value={form.name} onChange={handleChange} fullWidth required /></Grid>
+            <Grid item xs={6}><TextField label="설명" name="description" value={form.description} onChange={handleChange} fullWidth /></Grid>
+            <Grid item xs={4}><TextField label="EWG 등급" name="ewg" value={form.ewg} onChange={handleChange} fullWidth /></Grid>
+            <Grid item xs={4}><TextField label="코드" name="code" value={form.code} onChange={handleChange} fullWidth /></Grid>
+            <Grid item xs={4}><TextField label="사용처" name="usage" value={form.usage} onChange={handleChange} fullWidth /></Grid>
+            <Grid item xs={4}><TextField label="1kg 단가" name="cost" type="number" value={form.cost} onChange={handleChange} fullWidth /></Grid>
           </Grid>
 
-          {/* INCI (한글) Layer */}
+          {/* INCI 국문 */}
           <Typography variant="h6" gutterBottom sx={{ mt: 3 }}>INCI 명 (국문)</Typography>
           <Grid container spacing={2}>
             {form.inciKorNames.map((val, idx) => (
@@ -249,7 +289,7 @@ const IngredientPage = () => {
             ))}
           </Grid>
 
-          {/* INCI (영문) Layer */}
+          {/* INCI 영문 */}
           <Typography variant="h6" gutterBottom sx={{ mt: 3 }}>INCI 명 (영문)</Typography>
           <Grid container spacing={2}>
             {form.inciEngNames.map((val, idx) => (
@@ -267,7 +307,6 @@ const IngredientPage = () => {
           <Button onClick={handleSubmit} variant="contained">{editMode ? '수정' : '등록'}</Button>
         </DialogActions>
       </Dialog>
-
 
       <Snackbar open={snackbar.open} autoHideDuration={3000} onClose={() => setSnackbar({ ...snackbar, open: false })}>
         <Alert severity={snackbar.severity}>{snackbar.message}</Alert>

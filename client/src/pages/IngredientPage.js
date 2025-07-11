@@ -172,10 +172,48 @@ const IngredientPage = () => {
   };
 
   const columns = [
+
     { field: 'id', headerName: 'ID', width: 40 },
     { field: 'name', headerName: '원료명', width: 200 },
     { field: 'description', headerName: '설명', flex: 2 },
-    { field: 'ewg', headerName: 'EWG', width: 60 },
+    {
+      field: 'ewg',
+      headerName: 'EWG',
+      width: 80,
+      renderCell: (params) => {
+        const value = params.value?.toLowerCase();
+        let bgColor = '#eee';
+        let textColor = '#000';
+
+        if (value === 'green') {
+          bgColor = '#d0f0c0'; // 연한 초록
+          textColor = '#006400';
+        } else if (value === 'orange') {
+          bgColor = '#ffe5b4'; // 연한 주황
+          textColor = '#b36b00';
+        } else if (value === 'red') {
+          bgColor = '#f8d7da'; // 연한 빨강
+          textColor = '#a30000';
+        }
+
+        return (
+          <Box
+            sx={{
+              px: 1,
+              py: 0.5,
+              borderRadius: '8px',
+              backgroundColor: bgColor,
+              color: textColor,
+              fontWeight: 500,
+              textAlign: 'center',
+              width: '100%',
+            }}
+          >
+            {params.value}
+          </Box>
+        );
+      }
+    },
     { field: 'code', headerName: '코드', width: 70 },
     { field: 'usage', headerName: '사용처', width: 120 },
     { field: 'cost', headerName: '1kg 단가', width: 100 },

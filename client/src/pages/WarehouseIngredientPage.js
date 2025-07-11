@@ -12,6 +12,10 @@ import {
 } from '../services/warehouseService';
 import { getAllIngredients } from '../services/ingredientService';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
+import {
+    TableContainer, Table, TableHead, TableRow,
+    TableCell, TableBody
+} from '@mui/material';
 
 const WarehouseIngredientPage = () => {
     const { token } = useAuth();
@@ -24,10 +28,13 @@ const WarehouseIngredientPage = () => {
     const [inputKg, setInputKg] = useState('');
     // 상단에 상태 추가
     const [searchTerm, setSearchTerm] = useState('');
+    const [searchTermTable, setSearchTermTable] = useState('');
     const filteredIngredients = ingredients.filter(i =>
         i.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
-
+    const filteredTableIngredients = ingredients.filter(i =>
+        i.name.toLowerCase().includes(searchTermTable.toLowerCase())
+    );
 
 
     useEffect(() => {
@@ -243,7 +250,77 @@ const WarehouseIngredientPage = () => {
                     <Button onClick={() => setInputDialog({ open: false })}>취소</Button>
                     <Button variant="contained" onClick={handleSaveInput}>확인</Button>
                 </DialogActions>
+
             </Dialog>
+            <Box sx={{ mt: 5 }}>
+                <Typography variant="h6" gutterBottom>원료 보유 현황 (교차표)</Typography>
+                <TextField
+                    fullWidth
+                    size="small"
+                    placeholder="교차표 원료명 검색"
+                    value={searchTermTable}
+                    onChange={(e) => setSearchTermTable(e.target.value)}
+                    sx={{ mb: 2 }}
+                />
+
+                <TableContainer component={Paper} sx={{ maxHeight: 400 }}>
+                    <Table stickyHeader>
+                        <TableHead>
+                            <TableRow>
+                                <TableCell sx={{ backgroundColor: '#f0f0f0', fontWeight: 'bold' }}>원료명</TableCell>
+                                {warehouses.map((w) => (
+                                    <TableCell
+                                        key={w.id}
+                                        sx={{ backgroundColor: '#f0f0f0', fontWeight: 'bold', textAlign: 'right' }}
+                                    >
+                                        {w.Warehouse.name}
+                                    </TableCell>
+                                ))}
+                                <TableCell sx={{ backgroundColor: '#e0f7fa', fontWeight: 'bold', textAlign: 'right' }}>총합</TableCell>
+                            </TableRow>
+                        </TableHead>
+                        <TableBody>
+                           {filteredTableIngredients.map((ingredient) => {
+                                let rowTotal = 0;
+                                return (
+                                    <TableRow key={ingredient.id}>
+                                        <TableCell>{ingredient.name}</TableCell>
+                                        {warehouses.map((w) => {
+                                            const kg = warehouseIngredientMap[w.Warehouse.id]?.[ingredient.id] || 0;
+                                            rowTotal += kg;
+                                            return (
+                                                <TableCell key={w.id} align="right">
+                                                    {kg.toLocaleString()}kg
+                                                </TableCell>
+                                            );
+                                        })}
+                                        <TableCell align="right" sx={{ backgroundColor: '#e0f7fa' }}>
+                                            {rowTotal.toLocaleString()}kg
+                                        </TableCell>
+                                    </TableRow>
+                                );
+                            })}
+                            {/* 창고별 총합 row */}
+                            <TableRow>
+                                <TableCell sx={{ fontWeight: 'bold', backgroundColor: '#fafafa' }}>창고별 총합</TableCell>
+                                {warehouses.map((w) => {
+                                    let colTotal = 0;
+                                    for (const iid in warehouseIngredientMap[w.Warehouse.id] || {}) {
+                                        colTotal += warehouseIngredientMap[w.Warehouse.id][iid];
+                                    }
+                                    return (
+                                        <TableCell key={w.id} align="right" sx={{ fontWeight: 'bold', backgroundColor: '#fafafa' }}>
+                                            {colTotal.toLocaleString()}kg
+                                        </TableCell>
+                                    );
+                                })}
+                                <TableCell /> {/* 빈 셀 */}
+                            </TableRow>
+                        </TableBody>
+                    </Table>
+                </TableContainer>
+            </Box>
+
         </Box>
     );
 };

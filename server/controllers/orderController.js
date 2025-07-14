@@ -6,7 +6,11 @@ exports.createOrder = async (req, res) => {
 
   try {
     // 1. Order 생성
-    const order = await Order.create({ title, writer });
+    const order = await Order.create({
+      title,
+      writer,
+      orderType: 'product', // ✅ 명시적으로 추가해야 함
+    });
 
     // 2. OrderItem 생성
     const orderItems = await Promise.all(
@@ -92,7 +96,10 @@ exports.createOrder = async (req, res) => {
 // [2] 전체 발주 목록
 exports.getAllOrders = async (req, res) => {
   try {
-    const orders = await Order.findAll({ order: [['createdAt', 'DESC']] });
+    const orders = await Order.findAll({
+      where: { orderType: 'product' }, // ✅ 필터링 추가
+      order: [['createdAt', 'DESC']],
+    });
     res.status(200).json(orders);
   } catch (err) {
     res.status(500).json({ message: '발주 목록 조회 실패', error: err.message });

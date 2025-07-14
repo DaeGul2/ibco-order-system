@@ -27,6 +27,7 @@ const OrderProductIngredient = require('./OrderProductIngredient')(sequelize, Da
 const Warehouse = require('./Warehouse')(sequelize, DataTypes);
 const WarehouseIngredient = require('./WarehouseIngredient')(sequelize, DataTypes);
 const WarehousePriority = require('./WarehousePriority')(sequelize, DataTypes);
+const OrderIngredientItem = require('./OrderIngredientItem')(sequelize, DataTypes);
 
 // 관계 설정
 ProductIngredient.belongsTo(Product, { foreignKey: 'productId' });
@@ -70,6 +71,14 @@ WarehouseIngredient.belongsTo(Ingredient, { foreignKey: 'ingredientId' });
 Warehouse.hasOne(WarehousePriority, { foreignKey: 'warehouseId' });
 WarehousePriority.belongsTo(Warehouse, { foreignKey: 'warehouseId' });
 
+Order.hasMany(OrderIngredientItem, { foreignKey: 'orderId' });
+OrderIngredientItem.belongsTo(Order, { foreignKey: 'orderId' });
+
+Ingredient.hasMany(OrderIngredientItem, { foreignKey: 'ingredientId' });
+OrderIngredientItem.belongsTo(Ingredient, { foreignKey: 'ingredientId' });
+
+Warehouse.hasMany(OrderIngredientItem, { foreignKey: 'warehouseId' });
+OrderIngredientItem.belongsTo(Warehouse, { foreignKey: 'warehouseId' });
 
 
 module.exports = {
@@ -88,4 +97,5 @@ module.exports = {
   Warehouse,
   WarehouseIngredient,
   WarehousePriority,
+  OrderIngredientItem
 };

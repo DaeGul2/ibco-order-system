@@ -19,6 +19,11 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: false,
       defaultValue: false, // ✅ 기본값 false
     },
+    orderType: {
+      type: DataTypes.ENUM('product', 'ingredient'),
+      allowNull: false,
+      defaultValue: 'product', // 기존 발주와 호환 위해
+    }
   }, {
     tableName: 'orders',
     timestamps: true,

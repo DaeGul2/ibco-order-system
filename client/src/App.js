@@ -10,7 +10,7 @@ import ProductPage from './pages/ProductPage';
 import OrderPage from './pages/OrderPage';
 import WarehousePage from './pages/WarehousePage';
 import WarehouseIngredientPage from './pages/WarehouseIngredientPage'; // ✅ 추가
-
+import IngredientOrderPage from './pages/IngredientOrderPage'; // 👈 추가
 
 // 샘플용
 const Placeholder = ({ title }) => <h2>{title}</h2>;
@@ -37,6 +37,7 @@ function App() {
             <Route path="products/list" element={<ProductPage />} />
             <Route path="warehouses/manage" element={<WarehousePage />} />
             <Route path="warehouses/ingredients" element={<WarehouseIngredientPage />} /> {/* ✅ 추가 */}
+            <Route path="orders/ingredientlist" element={<IngredientOrderPage />} /> {/* ✅ 추가 */}
           </Route>
         </Routes>
       </Router>

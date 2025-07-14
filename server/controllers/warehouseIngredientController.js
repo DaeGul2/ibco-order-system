@@ -65,28 +65,58 @@ exports.deleteWarehouseIngredient = async (req, res) => {
 exports.bulkSetIngredients = async (req, res) => {
   try {
     const list = req.body; // [{ warehouseId, ingredientId, stockKg }]
+    console.log('🟡 수신된 리스트:', list);
 
-    for (const item of list) {
-      const { warehouseId, ingredientId, stockKg } = item;
-      if (!warehouseId || !ingredientId || isNaN(stockKg)) continue;
+    // list가 아예 비었으면 모든 창고 원료 삭제
+    if (!Array.isArray(list)) {
+      return res.status(400).json({ message: '잘못된 요청 형식입니다.' });
+    }
 
-      const existing = await WarehouseIngredient.findOne({
-        where: { warehouseId, ingredientId }
-      });
+    // 창고 ID 리스트 수집
+    const allWarehouseIds = [...new Set(list.map(i => i.warehouseId))];
 
-      if (existing) {
-        await existing.update({ stockKg: parseFloat(stockKg) });
-      } else {
-        await WarehouseIngredient.create({
-          warehouseId,
-          ingredientId,
-          stockKg: parseFloat(stockKg)
-        });
+    // 예외: list가 비었으면 모든 창고에서 원료 삭제
+    if (list.length === 0) {
+      await WarehouseIngredient.destroy({ where: {} });
+      return res.status(200).json({ message: '모든 창고의 원료가 삭제되었습니다.' });
+    }
+
+    // 1. 리스트를 창고별로 group
+    const grouped = {};
+    list.forEach(({ warehouseId, ingredientId, stockKg }) => {
+      if (!grouped[warehouseId]) grouped[warehouseId] = {};
+      grouped[warehouseId][ingredientId] = parseFloat(stockKg);
+    });
+
+    // 2. 창고별 처리
+    for (const warehouseId in grouped) {
+      const keepMap = grouped[warehouseId];
+
+      // 현재 DB 상태 조회
+      const existing = await WarehouseIngredient.findAll({ where: { warehouseId } });
+
+      // 삭제 대상 제거
+      for (const record of existing) {
+        if (!keepMap[record.ingredientId]) {
+          await record.destroy();
+        }
+      }
+
+      // update / create
+      for (const ingredientId in keepMap) {
+        const stockKg = keepMap[ingredientId];
+        const found = existing.find(e => e.ingredientId == ingredientId);
+        if (found) {
+          await found.update({ stockKg });
+        } else {
+          await WarehouseIngredient.create({ warehouseId, ingredientId, stockKg });
+        }
       }
     }
 
-    res.status(200).json({ message: '일괄 저장 완료' });
+    res.status(200).json({ message: '일괄 저장 및 삭제 완료' });
   } catch (err) {
-    res.status(500).json({ message: '일괄 저장 실패', error: err.message });
+    console.error('❌ 저장 실패:', err);
+    res.status(500).json({ message: '저장 실패', error: err.message });
   }
 };

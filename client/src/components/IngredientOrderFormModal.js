@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
   Dialog, DialogTitle, DialogContent, DialogActions,
   Box, Typography, Grid, Paper, TextField, Button, MenuItem, Snackbar, Alert
@@ -8,7 +8,7 @@ import { getAllIngredients } from '../services/ingredientService';
 import { getAllWarehouses } from '../services/warehouseService';
 import { createIngredientOrder } from '../services/ingredientOrderService';
 
-const IngredientOrderFormModal = ({ open, onClose, onSuccess }) => {
+const IngredientOrderFormModal = ({ open, onClose, onSuccess, defaultItems = [] }) => {
   const { token, user } = useAuth();
   const [ingredients, setIngredients] = useState([]);
   const [warehouses, setWarehouses] = useState([]);
@@ -16,7 +16,7 @@ const IngredientOrderFormModal = ({ open, onClose, onSuccess }) => {
   const [title, setTitle] = useState('');
   const [orderItems, setOrderItems] = useState([]);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
-
+  const initializedRef = useRef(false);
   const fetchData = async () => {
     const ing = await getAllIngredients(token);
     const wh = await getAllWarehouses(token);
@@ -24,15 +24,19 @@ const IngredientOrderFormModal = ({ open, onClose, onSuccess }) => {
     setWarehouses(wh.map(w => w.Warehouse));
   };
 
+
   useEffect(() => {
-    if (open) {
+    if (open && !initializedRef.current) {
       fetchData();
-      setOrderItems([]);
       setTitle('');
       setSelectedWarehouse('');
+      setOrderItems(defaultItems?.length > 0 ? defaultItems : []);
+      initializedRef.current = true;
     }
   }, [open]);
-
+  useEffect(() => {
+    if (!open) initializedRef.current = false;
+  }, [open]);
   const handleAddToOrder = (ingredient) => {
     setOrderItems(prev => [...prev, { ...ingredient, quantityKg: '' }]);
     setIngredients(prev => prev.filter(i => i.id !== ingredient.id));

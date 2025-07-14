@@ -14,6 +14,7 @@ import {
 } from '../services/orderService';
 import OrderFormModal from '../components/OrderFormModal';
 import OrderDetailModal from '../components/OrderDetailModal';
+import FeasibilityCheckModal from '../components/FeasibilityCheckModal';
 
 const OrderPage = () => {
   const { token } = useAuth();
@@ -22,6 +23,7 @@ const OrderPage = () => {
   const [formOpen, setFormOpen] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
+  const [feasibilityOpen, setFeasibilityOpen] = useState(false);
 
   const fetchOrders = () => {
     getAllOrders(token).then(setOrders);
@@ -133,6 +135,10 @@ const OrderPage = () => {
         <Button variant="contained" startIcon={<AddIcon />} onClick={() => setFormOpen(true)}>
           발주 등록
         </Button>
+
+        <Button onClick={() => setFeasibilityOpen(true)}>발주 가능성 확인</Button>
+
+
       </Box>
 
       <Box sx={{ height: 400 }}>
@@ -164,6 +170,10 @@ const OrderPage = () => {
       <Snackbar open={snackbar.open} autoHideDuration={3000} onClose={() => setSnackbar({ ...snackbar, open: false })}>
         <Alert severity={snackbar.severity}>{snackbar.message}</Alert>
       </Snackbar>
+      <FeasibilityCheckModal
+        open={feasibilityOpen}
+        onClose={() => setFeasibilityOpen(false)}
+      />
     </Container>
   );
 };

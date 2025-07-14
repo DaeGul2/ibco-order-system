@@ -36,3 +36,11 @@ export const deleteProduct = async (id, token) => {
     headers: { Authorization: `Bearer ${token}` },
   });
 };
+
+export const checkFeasibilityForProduct = async (productId, quantityKg, token) => {
+  const res = await axios.get(`${API}/${productId}/check-feasibility`, {
+    headers: { Authorization: `Bearer ${token}` },
+    params: { quantity: quantityKg },
+  });
+  return res.data;
+};

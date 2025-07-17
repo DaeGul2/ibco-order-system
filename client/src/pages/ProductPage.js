@@ -2,12 +2,15 @@
 import { useEffect, useState } from 'react';
 import {
     Container, Typography, Button, Box, Dialog, DialogTitle, DialogContent,
-    TextField, DialogActions, Snackbar, Alert, IconButton, Grid, MenuItem
+    TextField, DialogActions, Snackbar, Alert, IconButton, Grid, MenuItem,
+    Table, TableBody, TableCell, TableHead, TableRow
 } from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
+import UploadFileIcon from '@mui/icons-material/UploadFile';
+
 import {
     getAllIngredients
 } from '../services/ingredientService';
@@ -16,6 +19,7 @@ import {
 } from '../services/productService';
 import { useAuth } from '../context/AuthContext';
 import ProductDetailModal from '../components/ProductDetailModal';
+import { parseProductExcel } from '../utils/productInsert';
 
 const ProductPage = () => {
     const { token } = useAuth();
@@ -27,6 +31,9 @@ const ProductPage = () => {
     const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
     const [detailOpen, setDetailOpen] = useState(false);
     const [selectedProduct, setSelectedProduct] = useState(null);
+    const [excelModalOpen, setExcelModalOpen] = useState(false);
+    const [excelFile, setExcelFile] = useState(null);
+    const [excelData, setExcelData] = useState([]);
 
     const fetchData = () => {
         getAllProducts(token).then(setProducts);
@@ -143,9 +150,19 @@ const ProductPage = () => {
         <Container>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 4, mb: 2 }}>
                 <Typography variant="h6">제품 목록</Typography>
-                <Button variant="contained" startIcon={<AddIcon />} onClick={openCreateModal}>
-                    제품 추가
-                </Button>
+                <Box>
+                    <Button
+                        variant="outlined"
+                        startIcon={<UploadFileIcon />}
+                        onClick={() => setExcelModalOpen(true)}
+                        sx={{ mr: 1 }}
+                    >
+                        Import
+                    </Button>
+                    <Button variant="contained" startIcon={<AddIcon />} onClick={openCreateModal}>
+                        제품 추가
+                    </Button>
+                </Box>
             </Box>
 
             <Box sx={{ height: 400 }}>
@@ -168,7 +185,6 @@ const ProductPage = () => {
                         onChange={(e) => setForm({ ...form, name: e.target.value })}
                         fullWidth margin="normal"
                     />
-
                     <Typography variant="subtitle1" sx={{ mt: 2 }}>원료 구성</Typography>
                     {form.ingredients.map((item, index) => (
                         <Grid container spacing={1} key={index} sx={{ mt: 1 }}>
@@ -213,6 +229,122 @@ const ProductPage = () => {
                 onClose={() => setDetailOpen(false)}
                 data={selectedProduct}
             />
+
+            {/* Excel Import Dialog */}
+            <Dialog open={excelModalOpen} onClose={() => setExcelModalOpen(false)} maxWidth="md" fullWidth>
+                <DialogTitle>엑셀 Import</DialogTitle>
+                <DialogContent>
+                    <Button component="label" variant="contained" sx={{ mb: 2 }}>
+                        엑셀 파일 선택
+                        <input
+                            type="file"
+                            accept=".xlsx, .xls"
+                            hidden
+                            onChange={(e) => setExcelFile(e.target.files[0])}
+                        />
+                    </Button>
+
+                    {excelData.map((sheet, idx) => (
+                        <Box key={idx} sx={{ mt: 3 }}>
+                            <Typography variant="h6">📄 시트: {sheet.sheetName}</Typography>
+                            {sheet.products.map((product, pIdx) => (
+                                <Box key={pIdx} sx={{ mt: 2, ml: 2 }}>
+                                    <Typography variant="subtitle1">📦 {product.name}</Typography>
+                                    <Table size="small" sx={{ mt: 1 }}>
+                                        <TableHead>
+                                            <TableRow>
+                                                <TableCell>원료명</TableCell>
+                                                <TableCell>수정</TableCell>
+                                                <TableCell align="right">함량 (%)</TableCell>
+                                            </TableRow>
+                                        </TableHead>
+                                        <TableBody>
+                                            {product.ingredients.map((ing, iIdx) => (
+                                                <TableRow key={iIdx}>
+                                                    <TableCell sx={{ color: ing.exists ? 'inherit' : 'red' }}>
+                                                        {ing.originalName}
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        {ing.exists ? '✅' : (
+                                                            <TextField
+                                                                select
+                                                                size="small"
+                                                                value={ing.correctedName}
+                                                                onChange={(e) => {
+                                                                    const newData = [...excelData];
+                                                                    newData[idx].products[pIdx].ingredients[iIdx].correctedName = e.target.value;
+                                                                    newData[idx].products[pIdx].ingredients[iIdx].exists = true;
+                                                                    setExcelData(newData);
+                                                                }}
+                                                            >
+                                                                {ingredients.map(option => (
+                                                                    <MenuItem key={option.id} value={option.name}>{option.name}</MenuItem>
+                                                                ))}
+                                                            </TextField>
+                                                        )}
+                                                    </TableCell>
+                                                    <TableCell align="right">{ing.amount}</TableCell>
+                                                </TableRow>
+                                            ))}
+                                        </TableBody>
+                                    </Table>
+                                </Box>
+                            ))}
+                        </Box>
+                    ))}
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setExcelModalOpen(false)}>닫기</Button>
+                    <Button
+                        variant="contained"
+                        onClick={async () => {
+                            if (!excelFile) return;
+                            const parsed = await parseProductExcel(excelFile, ingredients);
+                            setExcelData(parsed);
+                        }}
+                    >
+                        Import 실행
+                    </Button>
+                    <Button
+                        variant="contained"
+                        color="success"
+                        onClick={async () => {
+                            try {
+                                const nameToIdMap = {};
+                                ingredients.forEach(i => nameToIdMap[i.name] = i.id);
+
+                                for (const sheet of excelData) {
+                                    for (const product of sheet.products) {
+                                        const payload = {
+                                            name: product.name,
+                                            ingredients: product.ingredients.map(ing => ({
+                                                ingredientId: nameToIdMap[ing.correctedName],
+                                                amount: Number(ing.amount)
+                                            }))
+                                        };
+
+                                        if (payload.ingredients.some(i => !i.ingredientId || !i.amount)) {
+                                            showSnackbar(`⛔ ${product.name}: 원료ID 또는 함량 누락`, 'error');
+                                            continue;
+                                        }
+
+                                        await createProduct(payload, token);
+                                    }
+                                }
+
+                                showSnackbar('✅ 엑셀 제품 등록 완료');
+                                setExcelModalOpen(false);
+                                fetchData();
+                            } catch (err) {
+                                showSnackbar('❌ 등록 중 오류 발생', 'error');
+                                console.error(err);
+                            }
+                        }}
+                    >
+                        DB 저장
+                    </Button>
+                </DialogActions>
+            </Dialog>
         </Container>
     );
 };

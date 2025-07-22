@@ -73,6 +73,11 @@ const IngredientOrderPage = () => {
                             <VisibilityIcon />
                         </IconButton>
                     </Tooltip>
+                    <Tooltip title="삭제">
+                        <IconButton color="error" onClick={() => handleDelete(params.row.id)}>
+                            <DeleteIcon />
+                        </IconButton>
+                    </Tooltip>
                     {!params.row.isApplied && (
                         <>
                             <Tooltip title="창고반영">
@@ -80,11 +85,7 @@ const IngredientOrderPage = () => {
                                     <WarehouseIcon />
                                 </IconButton>
                             </Tooltip>
-                            <Tooltip title="삭제">
-                                <IconButton color="error" onClick={() => handleDelete(params.row.id)}>
-                                    <DeleteIcon />
-                                </IconButton>
-                            </Tooltip>
+
                         </>
                     )}
                 </>

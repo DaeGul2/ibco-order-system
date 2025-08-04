@@ -10,7 +10,7 @@
 
 # production
 /build
-
+.env.production
 .env
 
 # misc

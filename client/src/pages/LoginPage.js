@@ -1,17 +1,27 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import {
   Container, TextField, Button, Typography, Box,
-  Snackbar, Alert
+  Snackbar, Alert, FormControlLabel, Checkbox
 } from '@mui/material';
 
 const LoginPage = () => {
   const [form, setForm] = useState({ userId: '', password: '' });
+  const [remember, setRemember] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
   const { handleLogin } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const savedUserId = localStorage.getItem('savedUserId');
+    const savedPassword = localStorage.getItem('savedPassword');
+    if (savedUserId && savedPassword) {
+      setForm({ userId: savedUserId, password: savedPassword });
+      setRemember(true);
+    }
+  }, []);
 
   const onChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -22,6 +32,15 @@ const LoginPage = () => {
     try {
       await handleLogin(form);
       setSuccess('로그인 성공!');
+
+      if (remember) {
+        localStorage.setItem('savedUserId', form.userId);
+        localStorage.setItem('savedPassword', form.password);
+      } else {
+        localStorage.removeItem('savedUserId');
+        localStorage.removeItem('savedPassword');
+      }
+
       navigate('/');
     } catch {
       setError('로그인 실패: 아이디 또는 비밀번호를 확인하세요.');
@@ -40,6 +59,16 @@ const LoginPage = () => {
           name="password" label="비밀번호" type="password"
           value={form.password} onChange={onChange}
           fullWidth margin="normal" required
+        />
+        <FormControlLabel
+          control={
+            <Checkbox
+              checked={remember}
+              onChange={(e) => setRemember(e.target.checked)}
+              color="primary"
+            />
+          }
+          label="아이디와 비밀번호 기억하기"
         />
         <Button type="submit" variant="contained" fullWidth sx={{ mt: 2 }}>
           로그인

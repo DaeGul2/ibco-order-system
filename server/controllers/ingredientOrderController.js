@@ -127,8 +127,6 @@ exports.deleteIngredientOrder = async (req, res) => {
       return res.status(404).json({ message: '해당 발주를 찾을 수 없습니다.' });
     }
 
-  
-
     await OrderIngredientItem.destroy({ where: { orderId: order.id } });
     await order.destroy();
 

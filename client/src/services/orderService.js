@@ -32,3 +32,10 @@ export const deleteOrder = async (id, token) => {
     headers: { Authorization: `Bearer ${token}` },
   });
 };
+// [5] 발주 창고 적용 (우선순위 1 창고에서 차감)
+export const applyOrder = async (id, token) => {
+  const res = await axios.post(`${API}/${id}/apply`, {}, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return res.data;
+};

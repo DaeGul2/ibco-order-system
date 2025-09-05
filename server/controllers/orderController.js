@@ -1,4 +1,10 @@
-const { Order, OrderItem, OrderIngredientSummary, ProductIngredient, Ingredient, Product, OrderProductIngredient } = require('../models');
+const {
+  sequelize,                 // 트랜잭션
+  Order, OrderItem, OrderIngredientSummary,
+  ProductIngredient, Ingredient, Product,
+  OrderProductIngredient,
+  WarehousePriority, WarehouseIngredient // 🔥 추가
+} = require('../models');
 
 // [1] 발주 생성
 exports.createOrder = async (req, res) => {
@@ -158,3 +164,108 @@ exports.deleteOrder = async (req, res) => {
   }
 };
 
+// server/controllers/orderController.js
+
+exports.applyProductOrder = async (req, res) => {
+  const { id } = req.params;
+  const t = await sequelize.transaction();
+  try {
+    // 1) 주문 조회 (OrderItem include 제거)
+    const order = await Order.findByPk(id, {
+      transaction: t,
+      lock: t.LOCK.UPDATE,
+    });
+    if (!order) {
+      await t.rollback();
+      return res.status(404).json({ message: 'Order not found' });
+    }
+    if (order.orderType !== 'product') {
+      await t.rollback();
+      return res.status(400).json({ message: 'Not a product-type order' });
+    }
+    if (order.isApplied) {
+      await t.rollback();
+      return res.status(409).json({ message: 'Already applied' });
+    }
+
+    // 2) 우선순위 1 창고 찾기
+    const topPriority = await WarehousePriority.findOne({
+      order: [['priorityOrder', 'ASC']],
+      transaction: t,
+    });
+    if (!topPriority) {
+      await t.rollback();
+      return res.status(400).json({ message: 'No warehouse priority found' });
+    }
+    const warehouseId = topPriority.warehouseId;
+
+    // 3) 이 주문의 제품→원료 스냅샷 집계
+    const snapshotRows = await OrderProductIngredient.findAll({
+      where: { orderId: order.id },
+      transaction: t,
+    });
+
+    const needByIngredient = {};
+    for (const row of snapshotRows) {
+      const ingId = row.ingredientId;
+      const kg = parseFloat(row.totalAmountKg || 0);
+      if (!needByIngredient[ingId]) needByIngredient[ingId] = 0;
+      needByIngredient[ingId] += kg;
+    }
+
+    if (!Object.keys(needByIngredient).length) {
+      await t.rollback();
+      return res.status(400).json({ message: 'No ingredient snapshot for this order' });
+    }
+
+    // 4) 재고 확인
+    const shortages = [];
+    const stockMap = {};
+
+    for (const [ingredientIdStr, requiredKg] of Object.entries(needByIngredient)) {
+      const ingredientId = parseInt(ingredientIdStr, 10);
+      const wi = await WarehouseIngredient.findOne({
+        where: { warehouseId, ingredientId },
+        transaction: t,
+        lock: t.LOCK.UPDATE,
+      });
+
+      const current = parseFloat(wi?.stockKg || 0);
+      if (current < requiredKg) {
+        shortages.push({
+          ingredientId,
+          requiredKg,
+          currentKg: current,
+          lackingKg: +(requiredKg - current).toFixed(4),
+        });
+      } else {
+        stockMap[ingredientId] = { record: wi, next: +(current - requiredKg).toFixed(4) };
+      }
+    }
+
+    if (shortages.length) {
+      await t.rollback();
+      return res.status(400).json({
+        message: 'Insufficient stock on priority-1 warehouse',
+        warehouseId,
+        shortages,
+      });
+    }
+
+    // 5) 차감 적용
+    for (const { record, next } of Object.values(stockMap)) {
+      await record.update({ stockKg: next }, { transaction: t });
+    }
+
+    // 6) 주문 상태 갱신
+    order.isApplied = true;
+    await order.save({ transaction: t });
+
+    await t.commit();
+    return res.json({ ok: true, warehouseId, applied: true });
+  } catch (err) {
+    console.error(err);
+    await t.rollback();
+    return res.status(500).json({ message: 'Apply failed', error: err.message });
+  }
+};

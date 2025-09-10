@@ -1,9 +1,11 @@
+import * as XLSX from 'xlsx';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   Box, Typography, Accordion, AccordionSummary, AccordionDetails,
   Paper, Button, Dialog, DialogTitle, DialogContent, DialogActions,
   TextField, IconButton
 } from '@mui/material';
+
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { useAuth } from '../context/AuthContext';
@@ -17,12 +19,16 @@ import {
   TableCell, TableBody, TableSortLabel
 } from '@mui/material';
 
+
 const WarehouseIngredientPage = () => {
   const { token } = useAuth();
   const [warehouses, setWarehouses] = useState([]);
   const [ingredients, setIngredients] = useState([]);
   const [warehouseIngredientMap, setWarehouseIngredientMap] = useState({});
   const [selectedWarehouseId, setSelectedWarehouseId] = useState(null);
+  const toggleAccordion = (wid) => {
+    setSelectedWarehouseId((prev) => (prev === wid ? null : wid));
+  };
   const [dropTarget, setDropTarget] = useState(null);
   const [inputDialog, setInputDialog] = useState({ open: false, warehouseId: null, ingredientId: null, mode: 'add' });
   const [inputKg, setInputKg] = useState('');
@@ -172,6 +178,27 @@ const WarehouseIngredientPage = () => {
     return entries;
   };
 
+
+  const exportWarehouseExcel = (wid) => {
+    const warehouseName = warehouses.find((w) => w.Warehouse.id === wid)?.Warehouse?.name || `warehouse-${wid}`;
+    const rows = getSortedWarehouseEntries(wid);
+    // 워크시트 데이터: 헤더 포함
+    const data = [
+      ['연번', '원료명', '수량(kg)'],
+      ...rows.map((r, idx) => [idx + 1, r.name, r.kg]),
+    ];
+    const ws = XLSX.utils.aoa_to_sheet(data);
+    // 열 너비 약간 보기 좋게
+    ws['!cols'] = [{ wch: 6 }, { wch: 24 }, { wch: 12 }];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, '창고현황');
+    const ts = new Date();
+    const yyyy = ts.getFullYear();
+    const mm = String(ts.getMonth() + 1).padStart(2, '0');
+    const dd = String(ts.getDate()).padStart(2, '0');
+    XLSX.writeFile(wb, `${warehouseName}_창고현황_${yyyy}${mm}${dd}.xlsx`);
+  };
+
   return (
     <Box sx={{ p: 2 }}>
       <Typography variant="h5" gutterBottom>창고 원료 관리</Typography>
@@ -195,12 +222,24 @@ const WarehouseIngredientPage = () => {
                 <Accordion
                   key={w.id}
                   expanded={selectedWarehouseId === wid}
-                  onChange={() => setSelectedWarehouseId(wid)}
+                  onChange={() => toggleAccordion(wid)}
                 >
                   <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                    <Typography fontWeight={selectedWarehouseId === wid ? 'bold' : 'normal'}>
-                      {w.Warehouse.name}
-                    </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', width: '100%', gap: 1, justifyContent: 'space-between' }}>
+                      <Typography fontWeight={selectedWarehouseId === wid ? 'bold' : 'normal'}>
+                        {w.Warehouse.name}
+                      </Typography>
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        onClick={(e) => {
+                          e.stopPropagation(); // 아코디언 토글 방지
+                          exportWarehouseExcel(wid);
+                        }}
+                      >
+                        창고 상황 엑셀 다운로드
+                      </Button>
+                    </Box>
                   </AccordionSummary>
                   <AccordionDetails
                     sx={{

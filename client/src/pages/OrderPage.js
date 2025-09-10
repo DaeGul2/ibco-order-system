@@ -13,7 +13,7 @@ import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined';
 
 import { useAuth } from '../context/AuthContext';
 import {
-  getAllOrders, getOrderById, deleteOrder, applyOrder
+  getAllOrders, getOrderById, deleteOrder, applyOrder, rollbackOrder
 } from '../services/orderService';
 import { getAllWarehouses, getWarehouseIngredients } from '../services/warehouseService';
 
@@ -79,6 +79,19 @@ const OrderPage = () => {
       showSnackbar(msg, 'error');
     }
   };
+
+  const handleRollback = async (id) => {
+    if (!window.confirm('창고반영을 취소하고 재고를 복구할까요?')) return;
+    try {
+      await rollbackOrder(id, token);
+      fetchOrders();
+      showSnackbar('창고반영 취소 완료');
+    } catch (err) {
+      const msg = err?.response?.data?.message || '창고반영 취소 실패';
+      showSnackbar(msg, 'error');
+    }
+  };
+
 
   // ✅ 반영 전 “재고변화 미리보기”
   const handlePreview = async (row) => {
@@ -215,7 +228,7 @@ const OrderPage = () => {
               <DeleteIcon />
             </IconButton>
           </Tooltip>
-          {!params.row.isApplied && (
+          {!params.row.isApplied ? (
             <>
               <Tooltip title="재고변화 미리보기 (우선순위 1 창고)">
                 <IconButton onClick={() => handlePreview(params.row)}>
@@ -228,6 +241,12 @@ const OrderPage = () => {
                 </IconButton>
               </Tooltip>
             </>
+          ) : (
+            <Tooltip title="창고반영 취소(롤백)">
+              <IconButton color="warning" onClick={() => handleRollback(params.row.id)}>
+                <WarehouseIcon />
+              </IconButton>
+            </Tooltip>
           )}
         </>
       )

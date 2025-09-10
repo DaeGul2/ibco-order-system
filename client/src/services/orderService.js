@@ -39,3 +39,10 @@ export const applyOrder = async (id, token) => {
   });
   return res.data;
 };
+
+export const rollbackOrder = async (id, token) => {
+  const res = await axios.post(`${API}/${id}/rollback`, {}, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return res.data;
+};

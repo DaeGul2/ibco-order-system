@@ -269,3 +269,94 @@ exports.applyProductOrder = async (req, res) => {
     return res.status(500).json({ message: 'Apply failed', error: err.message });
   }
 };
+
+
+exports.rollbackProductOrder = async (req, res) => {
+  const { id } = req.params;
+  const t = await sequelize.transaction();
+  try {
+    // 1) 주문 검증 + 잠금
+    const order = await Order.findByPk(id, { transaction: t, lock: t.LOCK.UPDATE });
+    if (!order) {
+      await t.rollback();
+      return res.status(404).json({ message: 'Order not found' });
+    }
+    if (order.orderType !== 'product') {
+      await t.rollback();
+      return res.status(400).json({ message: 'Not a product-type order' });
+    }
+    if (!order.isApplied) {
+      await t.rollback();
+      return res.status(409).json({ message: 'Order is not applied' });
+    }
+
+    // 2) 되돌릴 창고 결정
+    //    - 만약 apply 시 사용한 창고 id를 order.appliedWarehouseId 등에 저장했다면 우선 사용
+    //    - 없으면 현재 우선순위 1 창고 사용 (apply와 동일 가정)
+    let warehouseId = order.appliedWarehouseId || null;
+    if (!warehouseId) {
+      const topPriority = await WarehousePriority.findOne({
+        order: [['priorityOrder', 'ASC']],
+        transaction: t,
+      });
+      if (!topPriority) {
+        await t.rollback();
+        return res.status(400).json({ message: 'No warehouse priority found' });
+      }
+      warehouseId = topPriority.warehouseId;
+    }
+
+    // 3) 스냅샷(OrderProductIngredient)에서 원재료별 총량 재집계
+    const snapshotRows = await OrderProductIngredient.findAll({
+      where: { orderId: order.id },
+      transaction: t,
+    });
+
+    const needByIngredient = {};
+    for (const row of snapshotRows) {
+      const ingId = row.ingredientId;
+      const kg = parseFloat(row.totalAmountKg || 0);
+      if (!kg) continue;
+      if (!needByIngredient[ingId]) needByIngredient[ingId] = 0;
+      needByIngredient[ingId] += kg;
+    }
+    if (!Object.keys(needByIngredient).length) {
+      await t.rollback();
+      return res.status(400).json({ message: 'No ingredient snapshot for this order' });
+    }
+
+    // 4) 재고 되돌리기 (행 없으면 생성 후 +kg)
+    for (const [ingredientIdStr, restoreKg] of Object.entries(needByIngredient)) {
+      const ingredientId = parseInt(ingredientIdStr, 10);
+
+      let wi = await WarehouseIngredient.findOne({
+        where: { warehouseId, ingredientId },
+        transaction: t,
+        lock: t.LOCK.UPDATE,
+      });
+
+      if (!wi) {
+        wi = await WarehouseIngredient.create(
+          { warehouseId, ingredientId, stockKg: 0 },
+          { transaction: t }
+        );
+      }
+
+      const current = parseFloat(wi.stockKg || 0);
+      const next = +(current + restoreKg).toFixed(4);
+      await wi.update({ stockKg: next }, { transaction: t });
+    }
+
+    // 5) 주문 상태 원복 (필요 시 적용창고 기록도 초기화)
+    order.isApplied = false;
+    if (order.appliedWarehouseId) order.appliedWarehouseId = null;
+    await order.save({ transaction: t });
+
+    await t.commit();
+    return res.json({ ok: true, warehouseId, rolledBack: true });
+  } catch (err) {
+    console.error(err);
+    await t.rollback();
+    return res.status(500).json({ message: 'Rollback failed', error: err.message });
+  }
+};
